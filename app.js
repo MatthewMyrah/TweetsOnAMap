@@ -29,12 +29,8 @@ io.on('connection', function(socket) {
 		stream.on('tweet', function(tweet) {
 			if(tweet.coordinates) {
 				db.tweets.save(tweet, function(error, saved) {
-					if(!error) {
-						console.log("Tweet saved");
-					}
 				});
 				var locationData = {};
-				console.log(tweet.text);
 				locationData.lat = tweet.coordinates.coordinates[1];
 				locationData.lng = tweet.coordinates.coordinates[0];
 				locationData.sentiment = sentiment(tweet.text).score;
