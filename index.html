@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		 <title>Tweet Stream</title>
+		<style>
+			#map {
+				height:500px;
+				width:500px;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>This is the Tweet Stream App page</h1>
+		<div id="map">Map Area</div>
+		<form>
+			<p>Would you like to show negative tweets or positive tweets?</p>
+			<input onclick="toggleSentiment()" type="button" value="Show negative tweets" id="posNegToggle">
+			Track word: <input type="text" name="track" id="track"><br>
+			<input onclick="trackWordSubmitted()" type="button" value="Track Word">
+		</form>
+	</body>
+	<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCscuyHJThEGddOT8abX25qmxIRHdVx2P4"></script>
+	<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=visualization"></script>
+	<script src="/socket.io/socket.io.js"></script>
+	<script>
+		var positiveOrNegative = "positive";
+		var positiveTweetArray = [];
+		var negativeTweetArray = [];
+		var tweetDataArray = [];
+		function initialize() {
+			var mapOptions = {
+				center: new google.maps.LatLng(0, 0),
+				zoom: 1,
+				mapTypeId: google.maps.MapTypeId.SATELLITE
+			};
+
+			var map = new google.maps.Map(document.getElementById("map"), mapOptions);
+			
+			var heatmap;
+			if(positiveOrNegative == "positive") {
+				heatmap = new google.maps.visualization.HeatmapLayer({
+					data: positiveTweetArray
+				});
+			} else {
+				heatmap = new google.maps.visualization.HeatmapLayer({
+					data: negativeTweetArray
+				});
+			}
+		
+			heatmap.setMap(map);
+		}
+		google.maps.event.addDomListener(window, 'load', initialize);
+
+		var socket = io();
+		var numTweets = 0;
+		socket.on('tweet', function(tweet) {
+			numTweets++;
+			var tweetData = {};
+			var location = new google.maps.LatLng(tweet.lat, tweet.lng);
+			tweetData.location = location;
+			tweetData.weight = Math.abs(tweet.sentiment);
+			if(tweet.sentiment >= 0) {
+				positiveTweetArray.push(tweetData);
+			} else {
+				negativeTweetArray.push(tweetData);
+			}
+			if(numTweets % 50 == 0) {
+				initialize();
+			}
+		});
+
+		function trackWordSubmitted() {
+			var trackWord = document.getElementById("track").value;
+			socket.emit('trackWordSubmitted', trackWord);
+		}
+
+		function toggleSentiment() {
+			var button = document.getElementById("posNegToggle");
+			if(positiveOrNegative == "positive") {
+				button.value = "Show negative tweets";
+				positiveOrNegative = "negative";
+			} else {
+				button.value = "Show positive tweets";
+				positiveOrNegative = "positive";
+			}
+			initialize();
+		}
+	</script>
+</html>
